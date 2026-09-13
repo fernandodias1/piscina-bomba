@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a2f33" />
+  <title>Piscina</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Piscina" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================ -->
+  <!-- Tela de conexão (primeira vez / botão de engrenagem)          -->
+  <!-- ============================================================ -->
+  <div id="overlay" class="overlay hidden">
+    <div class="connect-card">
+      <h2>Conectar à piscina</h2>
+      <p class="lead">
+        Esses dados vêm do mesmo broker MQTT que o ESP32 já usa. Preencha uma
+        vez — o app guarda no seu celular.
+      </p>
+
+      <form id="connect-form">
+        <div class="connect-field">
+          <label for="f-url">Endereço do broker (WebSocket)</label>
+          <input id="f-url" type="text" placeholder="wss://seu-broker.emqxsl.com:8084/mqtt" required />
+        </div>
+        <div class="connect-field">
+          <label for="f-user">Usuário</label>
+          <input id="f-user" type="text" autocomplete="off" required />
+        </div>
+        <div class="connect-field">
+          <label for="f-pass">Senha</label>
+          <input id="f-pass" type="password" autocomplete="off" required />
+        </div>
+        <div class="connect-field">
+          <label for="f-topic">ID do dispositivo (prefixo do tópico)</label>
+          <input id="f-topic" type="text" placeholder="piscina/esp8266-AA:BB:CC:DD:EE:FF" required />
+        </div>
+        <button type="submit" class="connect-submit">Conectar</button>
+        <div id="connect-error" class="connect-error"></div>
+      </form>
+      <button id="connect-back" class="connect-back" style="display:none;">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- App principal                                                 -->
+  <!-- ============================================================ -->
+  <div class="app">
+    <div class="topbar">
+      <h1>Piscina</h1>
+      <div class="status">
+        <span id="status-text" class="status-text">desconectado</span>
+        <span id="status-dot" class="status-dot"></span>
+        <button id="settings-btn" class="icon-btn" aria-label="Configurar conexão">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Hero: temperatura + estado da bomba -->
+    <div class="hero">
+      <div class="hero-temp-row">
+        <span id="temp-value" class="hero-temp">—</span>
+        <span class="hero-temp-unit">°C</span>
+      </div>
+      <div id="temp-updated" class="hero-updated">sem leitura ainda</div>
+
+      <div class="hero-bottom-row">
+        <div id="pump-pill" class="pump-pill">
+          <span class="dot"></span>
+          <span id="pump-pill-text">desligada</span>
+        </div>
+        <div class="time-today">
+          hoje
+          <strong id="time-today-value">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Linha do sol: horas de maior radiação -->
+    <div class="section">
+      <div class="section-title">Horas de maior radiação hoje</div>
+      <div id="sun-timeline" class="sun-timeline"></div>
+      <div class="sun-timeline-labels">
+        <span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span>
+      </div>
+    </div>
+
+    <!-- Controles -->
+    <div class="section">
+      <div class="control-row">
+        <div>
+          <div class="control-label">Modo automático</div>
+          <div class="control-sublabel">Decide sozinho por temperatura e radiação</div>
+        </div>
+        <button id="auto-switch" class="switch" role="switch" aria-checked="false"></button>
+      </div>
+      <div class="control-row">
+        <div>
+          <div class="control-label">Controle manual da bomba</div>
+          <div class="control-sublabel" id="manual-sublabel">Desative o automático para usar</div>
+        </div>
+        <button id="manual-btn" class="manual-btn">Ligar</button>
+        <!-- CORRIGIDO: removido o "disabled" fixo daqui -- ele travava o
+        botão para sempre, porque só era reativado ao chegar uma
+        mensagem retida no tópico "automatico", que o firmware nunca
+        publica (só assina). Quem decide se fica ativo agora é o
+        updateManualAvailability() no app.js. -->
+      </div>
+    </div>
+
+    <!-- Configurações avançadas -->
+    <div class="section">
+      <button id="advanced-toggle" class="advanced-toggle">
+        <span>Configurações avançadas</span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div id="advanced-body" class="advanced-body">
+        <div class="field-row">
+          <label for="cfg-temp-ref">Temperatura de referência (°C)</label>
+          <input id="cfg-temp-ref" type="number" inputmode="numeric" />
+        </div>
+        <div class="field-row">
+          <label for="cfg-tempo-ref">Tempo p/ confirmar sol (min)</label>
+          <input id="cfg-tempo-ref" type="number" inputmode="numeric" />
+        </div>
+        <div class="field-row">
+          <label for="cfg-max-dia">Tempo máximo ligada/dia (min)</label>
+          <input id="cfg-max-dia" type="number" inputmode="numeric" />
+        </div>
+        <div class="field-row">
+          <label for="cfg-min-dia">Tempo mínimo ligada/dia (min)</label>
+          <input id="cfg-min-dia" type="number" inputmode="numeric" />
+        </div>
+        <div class="control-row">
+          <div>
+            <div class="control-label">Auxílio da meteorologia</div>
+            <div class="control-sublabel">Usa a previsão de radiação solar</div>
+          </div>
+          <button id="meteo-switch" class="switch" role="switch" aria-checked="false"></button>
+        </div>
+        <div class="field-row">
+          <label for="cfg-lat">Latitude</label>
+          <input id="cfg-lat" type="text" inputmode="decimal" />
+        </div>
+        <div class="field-row">
+          <label for="cfg-lon">Longitude</label>
+          <input id="cfg-lon" type="text" inputmode="decimal" />
+        </div>
+        <button id="save-config" class="save-config-btn">Salvar configurações</button>
+        <div class="save-hint">
+          Os campos acima mostram o último valor definido por algum app conectado — se
+          estiverem vazios, é porque ainda não foram ajustados por aqui.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
