@@ -9,7 +9,7 @@
 // Como o valor desse app é mostrar dado ao vivo, faz mais sentido
 // priorizar "sempre atual quando online" e só usar o cache como reserva
 // para quando não há internet.
-const CACHE_NAME = "piscina-shell-v3";
+const CACHE_NAME = "piscina-shell-v8";
 const APP_SHELL = [
   "./",
   "./index.html",

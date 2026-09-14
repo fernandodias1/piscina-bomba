@@ -80,7 +80,9 @@
         <span id="temp-value" class="hero-temp">—</span>
         <span class="hero-temp-unit">°C</span>
       </div>
-      <div id="temp-updated" class="hero-updated">sem leitura ainda</div>
+      <div class="hero-meta-row">
+        <span id="temp-updated" class="hero-updated">sem leitura ainda</span><span class="hero-sep"> - </span><span id="temp-predicted" class="hero-predicted">a previsão era —°C</span>
+      </div>
 
       <div class="hero-bottom-row">
         <div id="pump-pill" class="pump-pill">
@@ -123,6 +125,13 @@
         mensagem retida no tópico "automatico", que o firmware nunca
         publica (só assina). Quem decide se fica ativo agora é o
         updateManualAvailability() no app.js. -->
+      </div>
+      <div class="control-row">
+        <div>
+          <div class="control-label">Atualizar informações</div>
+          <div class="control-sublabel">Solicita dados atualizados do dispositivo</div>
+        </div>
+        <button id="refresh-btn" class="manual-btn">Atualizar</button>
       </div>
     </div>
 

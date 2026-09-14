@@ -140,10 +140,27 @@ button {
   opacity: 0.8;
 }
 
+.hero-meta-row {
+  display: flex;
+  align-items: baseline;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+
 .hero-updated {
   font-size: 0.8rem;
   color: rgba(234, 246, 246, 0.6);
-  margin-top: 0.3rem;
+}
+
+.hero-sep {
+  font-size: 0.8rem;
+  color: rgba(234, 246, 246, 0.35);
+}
+
+.hero-predicted {
+  font-size: 0.6rem;
+  color: rgba(234, 246, 246, 0.45);
+  white-space: nowrap;
 }
 
 .hero-bottom-row {

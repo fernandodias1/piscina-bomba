@@ -26,6 +26,7 @@ const els = {
 
   tempValue: document.getElementById("temp-value"),
   tempUpdated: document.getElementById("temp-updated"),
+  tempPredicted: document.getElementById("temp-predicted"),
   pumpPill: document.getElementById("pump-pill"),
   pumpPillText: document.getElementById("pump-pill-text"),
   timeToday: document.getElementById("time-today-value"),
@@ -34,6 +35,7 @@ const els = {
   autoSwitch: document.getElementById("auto-switch"),
   manualBtn: document.getElementById("manual-btn"),
   manualSublabel: document.getElementById("manual-sublabel"),
+  refreshBtn: document.getElementById("refresh-btn"),
 
   advancedToggle: document.getElementById("advanced-toggle"),
   advancedBody: document.getElementById("advanced-body"),
@@ -224,8 +226,14 @@ function applyValue(suffix, payload, live) {
     case "temperatura_sensor":
       els.tempValue.textContent = Number(payload).toFixed(1);
       break;
-    case "hora_temperatura_sensor":
-      els.tempUpdated.textContent = "atualizado às " + payload;
+    case "hora_temperatura_sensor": {
+      // O firmware manda "HH:MM:SS"; corta os segundos só na exibição.
+      const hhmm = payload.length >= 5 ? payload.slice(0, 5) : payload;
+      els.tempUpdated.textContent = "atualizado às " + hhmm;
+      break;
+    }
+    case "temperatura_prevista":
+      els.tempPredicted.textContent = "a previsão era " + Number(payload).toFixed(1) + "°C";
       break;
     case "estado_bomba": {
       const ligada = payload === "1";
@@ -310,12 +318,16 @@ function renderSunTimeline() {
 
 // ---------------- Controles (publicam no MQTT) ----------------
 
-function publish(suffix, value) {
+function publish(suffix, value, retain = true) {
   if (!client || !client.connected) {
     showToast("Sem conexão com o broker — nada foi enviado");
     return false;
   }
-  client.publish(topicPrefix + "/" + suffix, String(value), { retain: true, qos: 1 });
+  // "retain" default true mantém o comportamento de sempre (estado
+  // atual, fica retido). Comandos pontuais (como "atualizar agora") não
+  // devem ficar retidos -- senão o dispositivo re-executaria o comando
+  // sozinho toda vez que reconectasse e recebesse essa mensagem de novo.
+  client.publish(topicPrefix + "/" + suffix, String(value), { retain, qos: 1 });
   return true;
 }
 
@@ -352,6 +364,18 @@ els.manualBtn.addEventListener("click", () => {
 els.meteoSwitch.addEventListener("click", () => {
   const novo = !els.meteoSwitch.classList.contains("on");
   publish("auxilio_meteorologia", novo ? "1" : "0");
+});
+
+els.refreshBtn.addEventListener("click", () => {
+  // "atualizaMQTT" é o tópico que o firmware realmente confere no
+  // callback() (dispara enviaValores() lá no dispositivo). Não retido:
+  // é um pedido pontual, não um estado para guardar.
+  const ok = publish("atualizaMQTT", "1", false);
+  if (ok) {
+    const original = els.refreshBtn.textContent;
+    els.refreshBtn.textContent = "Pedido enviado ✓";
+    setTimeout(() => (els.refreshBtn.textContent = original), 1800);
+  }
 });
 
 els.advancedToggle.addEventListener("click", () => {
