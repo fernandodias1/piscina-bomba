@@ -75,6 +75,10 @@ button {
   background: #6fd6a8;
 }
 
+.status-dot.server {
+  background: var(--sun-gold);
+}
+
 .status-dot.connecting {
   background: var(--sun-gold);
 }

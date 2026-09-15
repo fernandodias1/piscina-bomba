@@ -130,10 +130,34 @@ els.connectForm.addEventListener("submit", (ev) => {
 
 // ---------------- Conexão MQTT ----------------
 
+// NOVO: "server" (laranja) = fala com o broker MQTT, mas ainda não
+// confirmou que o dispositivo está respondendo. "online" (verde) = já
+// recebeu, nesta sessão, pelo menos uma mensagem de um tópico que só o
+// firmware publica (não uma config que a própria PWA manda).
 function setStatus(kind) {
-  els.statusDot.className = "status-dot " + (kind === "online" ? "online" : kind === "connecting" ? "connecting" : "");
-  els.statusText.textContent = kind === "online" ? "conectado" : kind === "connecting" ? "conectando…" : "desconectado";
+  const dotClasses = { offline: "", connecting: "connecting", server: "server", online: "online" };
+  const texts = {
+    offline: "desconectado",
+    connecting: "conectando…",
+    server: "conectado ao servidor",
+    online: "conectado ao dispositivo",
+  };
+  els.statusDot.className = "status-dot " + (dotClasses[kind] || "");
+  els.statusText.textContent = texts[kind] || "desconectado";
 }
+
+// Tópicos que só o firmware publica (nunca a PWA) -- receber uma
+// mensagem AO VIVO em qualquer um deles é a prova de que o dispositivo
+// está respondendo de verdade, não só o broker.
+const TOPICOS_DO_DISPOSITIVO = new Set([
+  "temperatura_sensor",
+  "hora_temperatura_sensor",
+  "estado_bomba",
+  "tempo_bomba_ligada_dia",
+  "horas_maior_radiacao_solar",
+  "temperatura_prevista",
+]);
+let dispositivoConfirmado = false;
 
 function connect(cfg) {
   if (client) {
@@ -145,6 +169,7 @@ function connect(cfg) {
   }
 
   confirmedThisSession = new Set(); // nova sessão, ninguém foi confirmado ainda
+  dispositivoConfirmado = false;    // NOVO: idem, para o status do dispositivo
   topicPrefix = cfg.topicPrefix;
   setStatus("connecting");
 
@@ -158,7 +183,7 @@ function connect(cfg) {
   });
 
   client.on("connect", () => {
-    setStatus("online");
+    setStatus("server");  // CORRIGIDO: era "online" -- aqui só confirmamos o broker, não o dispositivo
     els.connectError.textContent = "";
     console.log("[piscina] conectado. Assinando:", topicPrefix + "/#");
     client.subscribe(topicPrefix + "/#", { qos: 1 }, (err, granted) => {
@@ -187,6 +212,12 @@ function connect(cfg) {
     const suffix = topic.slice(topicPrefix.length + 1);
     const payload = payloadBuf.toString();
     console.log("[piscina] mensagem recebida:", topic, "=", payload);
+    // NOVO: só sobe pra "conectado ao dispositivo" com uma mensagem de
+    // um tópico que o firmware realmente publica sozinho.
+    if (TOPICOS_DO_DISPOSITIVO.has(suffix) && !dispositivoConfirmado) {
+      dispositivoConfirmado = true;
+      setStatus("online");
+    }
     saveCacheValue(suffix, payload);
     confirmedThisSession.add(suffix);
     applyValue(suffix, payload, true);
