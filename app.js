@@ -487,4 +487,15 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// NOVO: quando o app volta a ficar em primeiro plano no celular (troca
+// de app, tela apagou e acendeu, etc.), pede uma atualização automática
+// -- mesma ação do botão "Atualizar". Isso confirma o status "conectado
+// ao dispositivo" ativamente, em vez de só esperar uma mensagem retida
+// chegar sozinha depois da reconexão.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && client && client.connected) {
+    publish("atualizaMQTT", "1", false);
+  }
+});
+
 init();
