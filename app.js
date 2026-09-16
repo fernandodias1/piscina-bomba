@@ -216,9 +216,14 @@ function connect(cfg) {
     const suffix = topic.slice(topicPrefix.length + 1);
     const payload = payloadBuf.toString();
     console.log("[piscina] mensagem recebida:", topic, "=", payload);
-    // NOVO: só sobe pra "conectado ao dispositivo" com uma mensagem de
-    // um tópico que o firmware realmente publica sozinho.
-    if (TOPICOS_DO_DISPOSITIVO.has(suffix) && !dispositivoConfirmado) {
+    // CORRIGIDO: antes só chamava setStatus("online") na primeira vez
+    // (guarda "&& !dispositivoConfirmado"). Isso ficava preso em laranja
+    // depois de uma reconexão automática do MQTT.js -- o handler de
+    // "connect" força setStatus("server") de novo (sem passar pela
+    // função que reseta dispositivoConfirmado), e como a variável já
+    // era true de antes, a chegada de uma mensagem nova não corrigia
+    // mais a cor visível. Agora sempre reafirma, sem custo real.
+    if (TOPICOS_DO_DISPOSITIVO.has(suffix)) {
       dispositivoConfirmado = true;
       setStatus("online");
     }
