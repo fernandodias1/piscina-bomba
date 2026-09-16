@@ -47,6 +47,8 @@ const els = {
   cfgLat: document.getElementById("cfg-lat"),
   cfgLon: document.getElementById("cfg-lon"),
   saveConfigBtn: document.getElementById("save-config"),
+  devicePrefix: document.getElementById("device-prefix"),
+  deviceFirmware: document.getElementById("device-firmware"),
 };
 
 let client = null;
@@ -156,6 +158,7 @@ const TOPICOS_DO_DISPOSITIVO = new Set([
   "tempo_bomba_ligada_dia",
   "horas_maior_radiacao_solar",
   "temperatura_prevista",
+  "firmware_versao",
 ]);
 let dispositivoConfirmado = false;
 
@@ -171,6 +174,7 @@ function connect(cfg) {
   confirmedThisSession = new Set(); // nova sessão, ninguém foi confirmado ainda
   dispositivoConfirmado = false;    // NOVO: idem, para o status do dispositivo
   topicPrefix = cfg.topicPrefix;
+  els.devicePrefix.textContent = topicPrefix;  // NOVO: já sabemos isso localmente, não precisa vir do MQTT
   setStatus("connecting");
 
   client = mqtt.connect(cfg.url, {
@@ -265,6 +269,9 @@ function applyValue(suffix, payload, live) {
     }
     case "temperatura_prevista":
       els.tempPredicted.textContent = "a previsão era " + Number(payload).toFixed(1) + "°C";
+      break;
+    case "firmware_versao":
+      els.deviceFirmware.textContent = payload;
       break;
     case "estado_bomba": {
       const ligada = payload === "1";

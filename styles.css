@@ -424,6 +424,18 @@ button {
   text-align: center;
 }
 
+.device-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(234, 246, 246, 0.08);
+  font-size: 0.72rem;
+  color: rgba(234, 246, 246, 0.4);
+}
+
 /* ---------- Tela de conexão ---------- */
 
 .overlay {
